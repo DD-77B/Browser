@@ -1,23 +1,23 @@
 name: Build Prisma APK
 on:
   push:
-    paths: ['prisma.zip', '.github/workflows/build.yml']
+    paths: ['**.zip', '.github/workflows/build.yml']
   workflow_dispatch:
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Unpack project
-        run: rm -rf src && mkdir src && unzip -q prisma.zip -d src && ls -la src
-      - uses: actions/setup-java@v4
+      - name: Find and unpack zip
+        run: Z=$(find . -maxdepth 3 -iname '*prisma*.zip' -not -path './.git/*' | head -1); [ -z "$Z" ] && Z=$(find . -maxdepth 3 -iname '*.zip' -not -path './.git/*' | head -1); echo "ZIP = $Z"; ls -la; [ -n "$Z" ] || { echo "::error::В репозитории нет zip-архива"; exit 1; }; rm -rf src && mkdir src && unzip -q "$Z" -d src && find src -maxdepth 3 -name settings.gradle
+      - uses: actions/setup-java@v5
         with: {distribution: temurin, java-version: '17'}
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
         with: {gradle-version: '8.9'}
       - name: Build APK
-        run: cd src && gradle assembleRelease --no-daemon --stacktrace
+        run: P=$(dirname "$(find src -maxdepth 3 -name settings.gradle | head -1)"); echo "Project = $P"; cd "$P" && gradle assembleRelease --no-daemon --stacktrace
       - name: Name APK
-        run: cp src/app/build/outputs/apk/release/app-release.apk Prisma-${{ github.run_number }}.apk
+        run: cp "$(find src -name '*-release.apk' | head -1)" Prisma-${{ github.run_number }}.apk
       - uses: actions/upload-artifact@v4
         with: {name: 'Prisma-APK-${{ github.run_number }}', path: 'Prisma-*.apk'}
