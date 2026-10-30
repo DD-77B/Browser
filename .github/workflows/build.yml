@@ -12,9 +12,10 @@ jobs:
         run: Z=$(find . -maxdepth 3 -iname '*prisma*.zip' -not -path './.git/*' | head -1); [ -z "$Z" ] && Z=$(find . -maxdepth 3 -iname '*.zip' -not -path './.git/*' | head -1); echo "ZIP = $Z"; ls -la; [ -n "$Z" ] || { echo "::error::В репозитории нет zip-архива"; exit 1; }; rm -rf src && mkdir src && unzip -q "$Z" -d src && find src -maxdepth 3 -name settings.gradle
       - uses: actions/setup-java@v5
         with: {distribution: temurin, java-version: '17'}
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
         with: {gradle-version: '8.9'}
+      - name: Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME"; yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Build APK
         run: P=$(dirname "$(find src -maxdepth 3 -name settings.gradle | head -1)"); echo "Project = $P"; cd "$P" && gradle assembleRelease --no-daemon --stacktrace
       - name: Name APK
